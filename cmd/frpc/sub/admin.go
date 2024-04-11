@@ -15,6 +15,7 @@
 package sub
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 
+	"github.com/fatedier/frp/client"
 	"github.com/fatedier/frp/pkg/config"
 	v1 "github.com/fatedier/frp/pkg/config/v1"
 	clientsdk "github.com/fatedier/frp/pkg/sdk/client"
@@ -41,13 +43,21 @@ func init() {
 	))
 
 	rootCmd.AddCommand(NewAdminCommand(
+		"status",
+		"Overview of all proxies status",
+		StatusHandler,
+	))
+
+	rootCmd.PersistentFlags().BoolP("json", "j", false, "Return status in JSON format")
+
+	rootCmd.AddCommand(NewAdminCommand(
 		"stop",
 		"Stop the running frpc",
 		StopHandler,
 	))
 }
 
-func NewAdminCommand(name, short string, handler func(*v1.ClientCommonConfig) error) *cobra.Command {
+func NewAdminCommand(name, short string, handler func(*v1.ClientCommonConfig, *cobra.Command, []string) error) *cobra.Command {
 	return &cobra.Command{
 		Use:   name,
 		Short: short,
@@ -62,7 +72,7 @@ func NewAdminCommand(name, short string, handler func(*v1.ClientCommonConfig) er
 				os.Exit(1)
 			}
 
-			if err := handler(cfg); err != nil {
+			if err := handler(cfg, cmd, args); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -70,7 +80,7 @@ func NewAdminCommand(name, short string, handler func(*v1.ClientCommonConfig) er
 	}
 }
 
-func ReloadHandler(clientCfg *v1.ClientCommonConfig) error {
+func ReloadHandler(clientCfg *v1.ClientCommonConfig, cmd *cobra.Command, args []string) error {
 	client := clientsdk.New(clientCfg.WebServer.Addr, clientCfg.WebServer.Port)
 	client.SetAuth(clientCfg.WebServer.User, clientCfg.WebServer.Password)
 	if err := client.Reload(strictConfigMode); err != nil {
@@ -80,7 +90,7 @@ func ReloadHandler(clientCfg *v1.ClientCommonConfig) error {
 	return nil
 }
 
-func StatusHandler(clientCfg *v1.ClientCommonConfig) error {
+func StatusHandler(clientCfg *v1.ClientCommonConfig, cmd *cobra.Command, args []string) error {
 	client := clientsdk.New(clientCfg.WebServer.Addr, clientCfg.WebServer.Port)
 	client.SetAuth(clientCfg.WebServer.User, clientCfg.WebServer.Password)
 	res, err := client.GetAllProxyStatus()
@@ -88,7 +98,13 @@ func StatusHandler(clientCfg *v1.ClientCommonConfig) error {
 		return err
 	}
 
+	json, _ := cmd.Flags().GetBool("json")
+	if json {
+		return statusHandlerJSON(res)
+	}
+
 	fmt.Printf("Proxy Status...\n\n")
+
 	for _, typ := range proxyTypes {
 		arrs := res[string(typ)]
 		if len(arrs) == 0 {
@@ -106,7 +122,18 @@ func StatusHandler(clientCfg *v1.ClientCommonConfig) error {
 	return nil
 }
 
-func StopHandler(clientCfg *v1.ClientCommonConfig) error {
+func statusHandlerJSON(proxyStatuses client.StatusResp) error {
+	statusInJSON, err := json.Marshal(proxyStatuses)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(statusInJSON))
+
+	return nil
+}
+
+func StopHandler(clientCfg *v1.ClientCommonConfig, cmd *cobra.Command, args []string) error {
 	client := clientsdk.New(clientCfg.WebServer.Addr, clientCfg.WebServer.Port)
 	client.SetAuth(clientCfg.WebServer.User, clientCfg.WebServer.Password)
 	if err := client.Stop(); err != nil {
