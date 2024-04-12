@@ -21,6 +21,8 @@ clean-build:
 
 publish-all: publish publish-version publish-latestVersions ## publish the metadata and binaries from the build folder
 
+rollout: build-all-docker publish publish-version publish-latestVersions ## Do everythin in one step
+
 publish:
 	scripts/publish.sh
 
