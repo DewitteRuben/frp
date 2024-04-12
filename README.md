@@ -1,4 +1,4 @@
-# RecordEvolution Tunnel
+# Record Evolution Tunnel
 
 This is a fork of the frp repository, which includes additions required for the Record Evolution platform.
 
