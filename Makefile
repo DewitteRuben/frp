@@ -2,9 +2,35 @@ export PATH := $(PATH):`go env GOPATH`/bin
 export GO111MODULE=on
 LDFLAGS := -s -w
 
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
 all: env fmt build
 
 build: frps frpc
+
+build-all:
+	scripts/build-all.sh
+
+build-all-docker: clean-build ## Builds all docker images for all targets in targets files
+	docker build --platform linux/amd64 . -t frpc-builder
+	docker run --name agent_builder -v ${ROOT_DIR}/build:/app/frpc/build frpc-builder
+
+clean-build:
+	docker rm -f agent_builder
+	rm -f build/*
+
+publish-all: publish publish-version publish-latestVersions ## publish the metadata and binaries from the build folder
+
+publish:
+	scripts/publish.sh
+
+publish-version:
+	gsutil cp "version.txt" gs://frpc
+	gsutil setmeta -r -h "Cache-control:public, max-age=0" gs://frpc/version.txt
+
+publish-latestVersions:
+	gsutil cp "availableVersions.json" gs://frpc
+	gsutil setmeta -r -h "Cache-control:public, max-age=0" gs://frpc/availableVersions.json
 
 env:
 	@go version
