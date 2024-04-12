@@ -12,8 +12,8 @@ build-all:
 	scripts/build-all.sh
 
 build-all-docker: clean-build ## Builds all docker images for all targets in targets files
-	docker build --platform linux/amd64 . -t frpc-builder
-	docker run --name agent_builder -v ${ROOT_DIR}/build:/app/frpc/build frpc-builder
+	docker build --platform linux/amd64 . -t frpc_builder
+	docker run --name frpc_builder -v ${ROOT_DIR}/build:/app/frpc/build frpc_builder
 
 clean-build:
 	docker rm -f agent_builder
