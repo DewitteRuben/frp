@@ -15,7 +15,7 @@ This is a fork of the frp repository, which includes additions required for the 
 
 # Release
 
-Make sure to update the version.txt and availableVersions.txt files to reflect the latest versions
+Make sure to update the `version.txt` and `availableVersions.json` files to reflect the latest versions
 
 ## Build and publish current version
 
